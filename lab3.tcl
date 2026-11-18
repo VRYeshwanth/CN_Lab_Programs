@@ -1,0 +1,104 @@
+set ns [ new Simulator ]
+set tf [open lab3.tr w]
+$ns trace-all $tf
+set nf [open lab3.nam w]
+$ns namtrace-all $nf
+
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+
+$ns color 1 "red"
+$ns color 2 "blue"
+$n0 label "Ping0"
+$n1 label "Ping1"
+$n4 label "Ping2"
+$n5 label "Ping3"
+
+$ns duplex-link $n0 $n2 0.5mb 10ms DropTail
+$ns duplex-link $n1 $n2 0.5mb 10ms DropTail
+$ns duplex-link $n2 $n3 0.5mb 10ms DropTail
+$ns duplex-link $n3 $n4 0.5mb 10ms DropTail
+$ns duplex-link $n3 $n5 0.5mb 10ms DropTail
+
+set ping0 [new Agent/Ping]
+$ns attach-agent $n0 $ping0
+set ping1 [new Agent/Ping]
+$ns attach-agent $n1 $ping1
+set ping4 [new Agent/Ping]
+$ns attach-agent $n4 $ping4
+set ping5 [new Agent/Ping]
+$ns attach-agent $n5 $ping5
+
+$ping0 set packetSize_ 500
+$ping0 set interval_ 0.001
+$ping1 set packetSize_ 500
+$ping1 set interval_ 0.001
+$ping4 set packetSize_ 500
+$ping4 set interval_ 0.001
+$ping5 set packetSize_ 500
+$ping5 set interval_ 0.001
+
+set udp0 [new Agent/UDP]
+set null [new Agent/Null]
+$ns attach-agent $n0 $udp0
+$ns attach-agent $n4 $null
+
+set cbr [new Application/Traffic/CBR]
+$cbr set packetSize_ 512
+$cbr set interval_ 0.001
+$cbr attach-agent $udp0
+$ns connect $udp0 $null
+
+$ping0 set color_ 1
+$ping1 set color_ 2
+
+$ns connect $ping0 $ping4
+$ns connect $ping1 $ping5
+
+Agent/Ping instproc recv { from rtt } {
+    $self instvar node_
+    puts "The node [$node_ id] received a reply from $from with round trip time of $rtt ms."
+}
+
+
+proc finish { } {
+    global ns nf tf
+    $ns flush-trace
+
+    exec nam lab3.nam &
+    close $tf
+    close $nf
+    exit 0
+}
+
+$ns at 0.1 "$ping0 send"
+$ns at 0.2 "$ping0 send"
+$ns at 0.3 "$ping0 send"
+$ns at 0.4 "$ping0 send"
+$ns at 0.5 "$ping0 send"
+$ns at 0.6 "$ping0 send"
+$ns at 0.7 "$ping0 send"
+$ns at 0.8 "$ping0 send"
+$ns at 0.9 "$ping0 send"
+$ns at 1.0 "$ping0 send"
+
+$ns at 0.2 "$cbr start"
+$ns at 4.0 "$cbr stop"
+
+$ns at 0.1 "$ping1 send"
+$ns at 0.2 "$ping1 send"
+$ns at 0.3 "$ping1 send"
+$ns at 0.4 "$ping1 send"
+$ns at 0.5 "$ping1 send"
+$ns at 0.6 "$ping1 send"
+$ns at 0.7 "$ping1 send"
+$ns at 0.8 "$ping1 send"
+$ns at 0.9 "$ping1 send"
+$ns at 1.0 "$ping1 send"
+
+$ns at 5.5 "finish"
+$ns run
